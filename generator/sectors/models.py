@@ -53,6 +53,12 @@ class Cluster(BaseModel):
     def sector_count(self) -> int:
         return len(self.sectors.keys())
 
+    def get_sector_siblings(self, target: Sector | None = None) -> list[Sector]:
+        sectors_copy = {**self.sectors}
+        if target is not None:
+            sectors_copy.pop(target.id)
+        return list(sectors_copy.values())
+
 
 class Galaxy(BaseModel):
     clusters: dict[int, Cluster] = {}
@@ -64,3 +70,9 @@ class Galaxy(BaseModel):
     @property
     def sector_count(self) -> int:
         return sum(x.sector_count for x in self.clusters.values())
+
+    def get_cluster_siblings(self, target: Cluster | None = None) -> list[Cluster]:
+        clusters_copy = {**self.clusters}
+        if target is not None:
+            clusters_copy.pop(target.id)
+        return list(clusters_copy.values())

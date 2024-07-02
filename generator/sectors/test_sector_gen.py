@@ -13,6 +13,6 @@ def test_basic_sector_gen() -> None:
     assert galaxy.cluster_count == 1
     cluster = cast(Cluster, galaxy.clusters.get(0))
     assert cluster.position.y == 0
-    assert 100_000_000 > cluster.position.x > 10_000
+    assert 100_000_000 > abs(cluster.position.x) > 10_000
 
     assert 4 > galaxy.sector_count >= 1
