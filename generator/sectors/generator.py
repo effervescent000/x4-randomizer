@@ -1,18 +1,20 @@
-import math
 import random
 
 from config.models import Config
-from generator.sectors.models import Cluster, Galaxy, Position, Sector
-
-
-def distance_between_points(a: Position, b: Position) -> float:
-    return math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2)
-
-
-def get_random_with_multiplier(
-    multiplier: int, upper: int = 9_999, lower: int = -9_999
-) -> int:
-    return random.randint(lower, upper) * multiplier
+from generator.sectors.helpers import (
+    break_compound_id,
+    distance_between_points,
+    get_connector_placement_both,
+    get_random_with_multiplier,
+)
+from generator.sectors.models import (
+    Cluster,
+    Galaxy,
+    InterSectorConnector,
+    LocationInSector,
+    Position,
+    Sector,
+)
 
 
 class SectorGenerator:
@@ -20,6 +22,38 @@ class SectorGenerator:
         self.config = config
         self.sector_count = 0
         self.galaxy = galaxy
+
+    def generate(self) -> None:
+        """Generate clusters with 1-3 sectors each, until we reach the sector cap."""
+        self._generate_sectors()
+        # generate jump gates
+        self._generate_sector_highways()
+
+    def _generate_sector_highways(self) -> None:
+        for cluster in self.galaxy.clusters.values():
+            if len(cluster.sectors) > 1:
+                for sector in cluster.sectors.values():
+                    # if the target cluster has no connections, connect it to one of its siblings
+                    if not any(
+                        [
+                            sector.id in break_compound_id(x.id)
+                            for x in cluster.inter_sector_highways
+                        ]
+                    ):
+                        max_gate_distance = 800_000
+                        partner = random.choice(cluster.get_sector_siblings(sector))
+                        main_gate_pos, partner_gate_pos = get_connector_placement_both(
+                            sector.position, partner.position, max_gate_distance
+                        )
+                        highway = InterSectorConnector(
+                            entry_point=LocationInSector(
+                                sector=sector, position=main_gate_pos
+                            ),
+                            exit_point=LocationInSector(
+                                sector=partner, position=partner_gate_pos
+                            ),
+                        )
+                        cluster.inter_sector_highways.append(highway)
 
     def _get_cluster_position(self) -> Position:
         multiplier = 10_000
@@ -65,8 +99,7 @@ class SectorGenerator:
             x = get_random_with_multiplier(multiplier)
             z = get_random_with_multiplier(multiplier)
 
-    def generate(self) -> None:
-        """Generate clusters with 1-3 sectors each, until we reach the sector cap."""
+    def _generate_sectors(self) -> None:
         while self.sector_count < self.config.sector_count:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(
@@ -77,7 +110,7 @@ class SectorGenerator:
 
             max_sectors = random.randint(1, 3)
             if max_sectors == 1:
-                sector = Sector(id=0, position=Position(0, 0, 0))
+                sector = Sector(id=0, position=Position(0, 0, 0), parent=cluster)
                 cluster.sectors[0] = sector
                 self.sector_count += 1
             else:
@@ -85,6 +118,7 @@ class SectorGenerator:
                     sector = Sector(
                         id=i,
                         position=self._get_sector_position(cluster),
+                        parent=cluster,
                     )
                     cluster.sectors[i] = sector
                     self.sector_count += 1

@@ -1,4 +1,5 @@
 from typing import NamedTuple
+
 from pydantic import BaseModel
 
 
@@ -10,6 +11,35 @@ class Position(NamedTuple):
     # @property
     # def as_string(self) -> str:
     #     return f"{self.x}"
+
+
+class LocationInSector(BaseModel):
+    sector: "Sector"
+    position: Position
+
+
+class Connector(BaseModel):
+    entry_point: LocationInSector
+    exit_point: LocationInSector
+    one_way: bool = True
+
+
+class InterClusterConnector(Connector):
+    """Jump gates. These go between clusters, but exist in sectors."""
+
+    one_way: bool = False
+
+    @property
+    def id(self) -> str:
+        return f"{self.entry_point.sector.parent.id}-{self.exit_point.sector.parent.id}"
+
+
+class InterSectorConnector(Connector):
+    """Accelerators and superhighways."""
+
+    @property
+    def id(self) -> str:
+        return f"{self.entry_point.sector.id}-{self.exit_point.sector.id}"
 
 
 class Zone(BaseModel):
@@ -26,6 +56,7 @@ class Sector(BaseModel):
     name: str | None = None
     zones: dict[int, Zone] = {}
     position: Position
+    parent: "Cluster"
     # lensflares: ... not required
     # lights: ... not required
     # zonehighways: ... not required
@@ -39,10 +70,10 @@ class Cluster(BaseModel):
     name: str | None = None
     sectors: dict[int, Sector] = {}
     position: Position
+    inter_sector_highways: list[InterSectorConnector] = []
     # areas: ... not required
     # regions: ... not required
     # content: ...
-    # sechighways: ... not required
     # planets: ... not required
     # suns: ... not required
     # nebulas: ... not required
@@ -62,6 +93,7 @@ class Cluster(BaseModel):
 
 class Galaxy(BaseModel):
     clusters: dict[int, Cluster] = {}
+    jump_gates: list[InterClusterConnector] = []
 
     @property
     def cluster_count(self) -> int:
