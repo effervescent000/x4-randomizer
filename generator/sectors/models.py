@@ -23,7 +23,7 @@ class Zone(BaseModel):
 
 class Sector(BaseModel):
     id: int
-    name: str
+    name: str | None = None
     zones: dict[int, Zone] = {}
     position: Position
     # lensflares: ... not required
@@ -36,7 +36,7 @@ class Sector(BaseModel):
 
 class Cluster(BaseModel):
     id: int
-    name: str
+    name: str | None = None
     sectors: dict[int, Sector] = {}
     position: Position
     # areas: ... not required

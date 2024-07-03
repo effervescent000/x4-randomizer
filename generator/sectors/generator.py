@@ -22,8 +22,6 @@ class SectorGenerator:
         self.galaxy = galaxy
 
     def _get_cluster_position(self) -> Position:
-        # TODO for now we are just returning random numbers, but eventually
-        # we'll want to ensure no overlaps
         multiplier = 10_000
         y = 0
         x = get_random_with_multiplier(multiplier)
@@ -73,21 +71,19 @@ class SectorGenerator:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(
                 id=cluster_id,
-                name="Testing",
                 position=self._get_cluster_position(),
             )
             self.galaxy.clusters[cluster_id] = cluster
 
             max_sectors = random.randint(1, 3)
             if max_sectors == 1:
-                sector = Sector(id=0, name="Testing", position=Position(0, 0, 0))
+                sector = Sector(id=0, position=Position(0, 0, 0))
                 cluster.sectors[0] = sector
                 self.sector_count += 1
             else:
                 for i in range(1, max_sectors):
                     sector = Sector(
                         id=i,
-                        name="Testing",
                         position=self._get_sector_position(cluster),
                     )
                     cluster.sectors[i] = sector
