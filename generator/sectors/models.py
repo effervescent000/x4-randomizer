@@ -28,10 +28,12 @@ class InterClusterConnector(Connector):
     """Jump gates. These go between clusters, but exist in sectors."""
 
     one_way: bool = False
+    entry_cluster: "Cluster"
+    exit_cluster: "Cluster"
 
     @property
     def id(self) -> str:
-        return f"{self.entry_point.sector.parent.id}-{self.exit_point.sector.parent.id}"
+        return f"{self.entry_cluster.id}-{self.exit_cluster.id}"
 
 
 class InterSectorConnector(Connector):
@@ -56,7 +58,7 @@ class Sector(BaseModel):
     name: str | None = None
     zones: dict[int, Zone] = {}
     position: Position
-    parent: "Cluster"
+    # parent: "Cluster" | None = None
     # lensflares: ... not required
     # lights: ... not required
     # zonehighways: ... not required
@@ -84,6 +86,10 @@ class Cluster(BaseModel):
     def sector_count(self) -> int:
         return len(self.sectors.keys())
 
+    @property
+    def sector_list(self) -> list[Sector]:
+        return list(self.sectors.values())
+
     def get_sector_siblings(self, target: Sector | None = None) -> list[Sector]:
         sectors_copy = {**self.sectors}
         if target is not None:
@@ -93,7 +99,7 @@ class Cluster(BaseModel):
 
 class Galaxy(BaseModel):
     clusters: dict[int, Cluster] = {}
-    jump_gates: list[InterClusterConnector] = []
+    highways: list[InterClusterConnector] = []
 
     @property
     def cluster_count(self) -> int:

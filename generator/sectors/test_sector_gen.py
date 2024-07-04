@@ -6,6 +6,7 @@ from config.models import Config
 from generator.sectors.generator import SectorGenerator
 from generator.sectors.helpers import get_default_position
 from generator.sectors.models import Cluster, Galaxy, Position, Sector
+from testing.shapes import sector_factory
 
 
 @pytest.mark.parametrize("_execution_number", range(5))
@@ -28,8 +29,8 @@ def test_sector_highway_gen_simple(_execution_number: int) -> None:
     """Generate intra-cluster highways in a basic two-sector system."""
     fake_cluster = Cluster(id=1, position=get_default_position())
     sectors = {
-        1: Sector(id=1, position=Position(-20_000, 0, -20_000), parent=fake_cluster),
-        2: Sector(id=1, position=Position(20_000, 0, 20_000), parent=fake_cluster),
+        1: Sector(id=1, position=Position(-20_000, 0, -20_000)),
+        2: Sector(id=2, position=Position(20_000, 0, 20_000)),
     }
     fake_cluster.sectors = sectors
     clusters = {1: fake_cluster}
@@ -43,3 +44,26 @@ def test_sector_highway_gen_simple(_execution_number: int) -> None:
     assert highways[0].entry_point.position.z <= 0
     assert highways[0].exit_point.position.x >= 0
     assert highways[0].exit_point.position.z >= 0
+
+
+def test_cluster_highway_gen_simple() -> None:
+    """Generate inter-cluster highways between two clusters, with a single sector each."""
+    config = Config(sector_count=1)
+    clusters = {
+        1: Cluster(
+            id=1,
+            position=Position(-20_000_000, 0, -20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+        2: Cluster(
+            id=2,
+            position=Position(20_000_000, 0, 20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+    }
+    galaxy = Galaxy(clusters=clusters)
+
+    gen = SectorGenerator(config, galaxy=galaxy)
+    gen._generate_cluster_highways()
+    highways = galaxy.highways
+    assert len(highways) == 1
