@@ -81,6 +81,10 @@ class Cluster(BaseModel):
     # lensflares: ...
 
     @property
+    def label(self) -> str:
+        return f"Cluster_{self.id:02}"
+
+    @property
     def sector_count(self) -> int:
         return len(self.sectors.keys())
 
@@ -102,6 +106,10 @@ class Galaxy(BaseModel):
     @property
     def cluster_count(self) -> int:
         return len(self.clusters.keys())
+
+    @property
+    def cluster_list(self) -> list[Cluster]:
+        return list(self.clusters.values())
 
     @property
     def sector_count(self) -> int:

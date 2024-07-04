@@ -1,0 +1,74 @@
+import os
+import shutil
+
+from lxml.objectify import Element, deannotate
+from lxml import etree
+
+from generator.sectors.models import Galaxy
+
+ASSETS_ENV_LOC = os.path.join("assets", "environments")
+MAPS_LOC = os.path.join("maps", "xu_ep2_universe")
+
+COMPONENT = "component"
+REF = "ref"
+CONNECTIONS = "connections"
+CONNECTION = "connection"
+GALAXY = "galaxy"
+CLUSTERS = "clusters"
+NAME = "name"
+MACRO = "macro"
+
+
+class ModWriter:
+    def __init__(self, galaxy: Galaxy) -> None:
+        self.output_location = os.path.join(os.getcwd(), "output")
+        self.galaxy = galaxy
+
+    def _remove_existing_output(self) -> None:
+        shutil.rmtree(self.output_location)
+        os.makedirs(self.output_location)
+        os.makedirs(os.path.join(self.output_location, ASSETS_ENV_LOC))
+        os.makedirs(os.path.join(self.output_location, MAPS_LOC))
+
+    def _write_galaxy_map(self) -> None:
+        root = Element("macros")
+        galaxy = Element(MACRO, attrib={NAME: "XU_EP2_universe_macro", "class": GALAXY})
+        root.append(galaxy)
+
+        galaxy.append(Element(COMPONENT, attrib={REF: "standardgalaxy"}))
+
+        connections = Element(CONNECTIONS)
+        galaxy.append(connections)
+        for cluster in self.galaxy.cluster_list:
+            conn = Element(
+                CONNECTION,
+                attrib={NAME: f"{cluster.label}_{CONNECTION}", REF: CLUSTERS},
+            )
+            connections.append(conn)
+            macro = Element(
+                MACRO, attrib={REF: f"{cluster.label}_{MACRO}", CONNECTION: GALAXY}
+            )
+            offset = Element("offset")
+            position = Element(
+                "position",
+                attrib={
+                    "x": str(cluster.position.x),
+                    "y": "0",
+                    "z": str(cluster.position.z),
+                },
+            )
+            offset.append(position)
+
+            conn.extend([macro, offset])
+
+        deannotate(root)
+        xml = etree.tostring(root, pretty_print=True, xml_declaration=True)
+
+        with open(
+            os.path.join(self.output_location, MAPS_LOC, "galaxy.xml"), "w"
+        ) as file:
+            file.write(xml.decode("utf-8"))
+
+    def write(self) -> None:
+        self._remove_existing_output()
+        self._write_galaxy_map()
