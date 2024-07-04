@@ -4,7 +4,7 @@ import pytest
 
 from config.models import Config
 from generator.sectors.generator import SectorGenerator
-from generator.sectors.helpers import get_default_position
+from generator.sectors.helpers import break_compound_id, get_default_position
 from generator.sectors.models import Cluster, Galaxy, Position, Sector
 from testing.shapes import sector_factory
 
@@ -65,5 +65,43 @@ def test_cluster_highway_gen_simple() -> None:
 
     gen = SectorGenerator(config, galaxy=galaxy)
     gen._generate_cluster_highways()
-    highways = galaxy.highways
-    assert len(highways) == 1
+    galaxy.highways
+    assert len(galaxy.highways) == 1
+
+
+@pytest.mark.parametrize("_execution_number", range(5))
+def test_cluster_highway_gen_multiple_clusters(_execution_number: int) -> None:
+    """Generate highways with a larger group of clusters."""
+    config = Config(sector_count=1)
+    clusters = {
+        1: Cluster(
+            id=1,
+            position=Position(-20_000_000, 0, -20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+        2: Cluster(
+            id=2,
+            position=Position(20_000_000, 0, 20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+        3: Cluster(
+            id=3,
+            position=Position(20_000_000, 0, -20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+        4: Cluster(
+            id=4,
+            position=Position(-20_000_000, 0, 20_000_000),
+            sectors={1: sector_factory(id=1)},
+        ),
+    }
+    galaxy = Galaxy(clusters=clusters)
+
+    gen = SectorGenerator(config, galaxy=galaxy)
+    gen._generate_cluster_highways()
+    assert len(galaxy.highways) > 0, "At least one highway is generated"
+    assert len(galaxy.highways) < 8, "Excessive highways aren't generated"
+    ids = [break_compound_id(x.id) for x in galaxy.highways]
+    assert all(
+        [any([i in id for id in ids]) for i in range(1, 5)]
+    ), "All clusters have at least one highway"
