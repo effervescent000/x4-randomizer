@@ -58,10 +58,8 @@ class Sector(BaseModel):
     name: str | None = None
     zones: dict[int, Zone] = {}
     position: Position
-    # parent: "Cluster" | None = None
     # lensflares: ... not required
     # lights: ... not required
-    # zonehighways: ... not required
     # rendereffects
     # stardust
     # adjacentregions
