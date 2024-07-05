@@ -116,7 +116,7 @@ class SectorGenerator:
             return Position(x, y, z)
 
         siblings = self.galaxy.get_cluster_siblings()
-        overlap_distance = convert_km_to_m_galaxy_scale(500)
+        overlap_distance = 50_000
         while True:
             maybe_position = Position(x, y, z)
             if not any(
@@ -139,7 +139,7 @@ class SectorGenerator:
             return Position(x, y, z)
 
         siblings = cluster.get_sector_siblings()
-        overlap_distance = convert_km_to_m_galaxy_scale(500)
+        overlap_distance = 50_000
         while True:
             maybe_position = Position(x, y, z)
             if not any(

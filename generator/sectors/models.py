@@ -9,8 +9,12 @@ class Position(NamedTuple):
     z: int
 
     # @property
-    # def as_string(self) -> str:
-    #     return f"{self.x}"
+    # def stringified(self) -> tuple[str, str, str]:
+    #     return (str(self.x), str(self.y), str(self.z))
+
+    @property
+    def string_dict(self) -> dict[str, str]:
+        return {"x": str(self.x), "y": str(self.y), "z": str(self.z)}
 
 
 class LocationInSector(BaseModel):

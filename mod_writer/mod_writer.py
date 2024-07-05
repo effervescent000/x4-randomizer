@@ -9,14 +9,17 @@ from generator.sectors.models import Galaxy
 ASSETS_ENV_LOC = os.path.join("assets", "environments")
 MAPS_LOC = os.path.join("maps", "xu_ep2_universe")
 
+CLUSTER = "cluster"
 CLUSTERS = "clusters"
 COMPONENT = "component"
 CONNECTION = "connection"
 CONNECTIONS = "connections"
 DESTINATION = "destination"
 GALAXY = "galaxy"
-NAME = "name"
 MACRO = "macro"
+NAME = "name"
+OFFSET = "offset"
+POSITION = "position"
 REF = "ref"
 
 
@@ -71,6 +74,36 @@ class ModWriter:
 
         self._write_to_file(root, [MAPS_LOC, "galaxy.xml"])
 
+    def _write_cluster_map(self) -> None:
+        root = Element("macros")
+        for cluster in self.galaxy.cluster_list:
+            macro = Element(MACRO, {NAME: f"{cluster.label}_{MACRO}", "class": CLUSTER})
+            root.append(macro)
+
+            component = Element(COMPONENT, {REF: "standardcluster"})
+            connections = Element(CONNECTIONS)
+            macro.extend([component, connections])
+
+            for sector in cluster.sector_list:
+                conn = Element(
+                    CONNECTION,
+                    {NAME: f"{sector.label}_{CONNECTION}", REF: CLUSTERS},
+                )
+                connections.append(conn)
+
+                sector_macro = Element(
+                    MACRO, {REF: f"{sector.label}_{MACRO}", CONNECTION: CLUSTER}
+                )
+                offset = Element(OFFSET)
+                conn.extend([sector_macro, offset])
+
+                pos = Element(POSITION, {**sector.position.string_dict})
+                offset.append(pos)
+
+            # TODO connect regions here
+
+        self._write_to_file(root, [MAPS_LOC, "clusters.xml"])
+
     def _write_sector_map(self) -> None:
         root = Element("macros")
         for sector in self.galaxy.sector_list:
@@ -86,7 +119,7 @@ class ModWriter:
 
             # TODO zones here
 
-        self._write_to_file(root, [MAPS_LOC, "sector.xml"])
+        self._write_to_file(root, [MAPS_LOC, "sectors.xml"])
 
     def _write_to_file(self, root: ObjectifiedElement, path: list[str]) -> None:
         deannotate(root)
@@ -98,4 +131,5 @@ class ModWriter:
     def write(self) -> None:
         self._remove_existing_output()
         self._write_galaxy_map()
+        self._write_cluster_map()
         self._write_sector_map()
