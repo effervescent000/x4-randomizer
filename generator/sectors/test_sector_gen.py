@@ -29,8 +29,12 @@ def test_sector_highway_gen_simple(_execution_number: int) -> None:
     """Generate intra-cluster highways in a basic two-sector system."""
     fake_cluster = Cluster(id=1, position=get_default_position())
     sectors = {
-        1: Sector(id=1, position=Position(-20_000, 0, -20_000)),
-        2: Sector(id=2, position=Position(20_000, 0, 20_000)),
+        1: Sector(
+            id=1, position=Position(-20_000, 0, -20_000), cluster_id=fake_cluster.id
+        ),
+        2: Sector(
+            id=2, position=Position(20_000, 0, 20_000), cluster_id=fake_cluster.id
+        ),
     }
     fake_cluster.sectors = sectors
     clusters = {1: fake_cluster}

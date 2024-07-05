@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from lxml.objectify import Element, deannotate
+from lxml.objectify import Element, deannotate, ObjectifiedElement
 from lxml import etree
 
 from generator.sectors.models import Galaxy
@@ -69,14 +69,33 @@ class ModWriter:
             macro = Element(MACRO, attrib={CONNECTION: DESTINATION})
             conn.append(macro)
 
+        self._write_to_file(root, [MAPS_LOC, "galaxy.xml"])
+
+    def _write_sector_map(self) -> None:
+        root = Element("macros")
+        for sector in self.galaxy.sector_list:
+            sector_macro = Element(
+                MACRO, attrib={NAME: f"{sector.label}_{MACRO}", "class": "sector"}
+            )
+            root.append(sector_macro)
+
+            sector_macro.append(Element(COMPONENT, attrib={REF: "standardsector"}))
+
+            connections = Element(CONNECTIONS)
+            sector_macro.append(connections)
+
+            # TODO zones here
+
+        self._write_to_file(root, [MAPS_LOC, "sector.xml"])
+
+    def _write_to_file(self, root: ObjectifiedElement, path: list[str]) -> None:
         deannotate(root)
         xml = etree.tostring(root, pretty_print=True, xml_declaration=True)
 
-        with open(
-            os.path.join(self.output_location, MAPS_LOC, "galaxy.xml"), "w"
-        ) as file:
+        with open(os.path.join(self.output_location, *path), "w") as file:
             file.write(xml.decode("utf-8"))
 
     def write(self) -> None:
         self._remove_existing_output()
         self._write_galaxy_map()
+        self._write_sector_map()

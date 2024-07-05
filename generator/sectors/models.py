@@ -50,6 +50,7 @@ class InterSectorConnector(Connector):
 
 class Zone(BaseModel):
     id: int
+    sector_id: int
     # there's a TON of stuff here but i feel like a lot of it is determined by gameplay
     # so I'm just going to include a few things
     # stations: ... not required, should probably only be used for hard-coded stations like wharfs/shipyards/trade centers
@@ -62,11 +63,20 @@ class Sector(BaseModel):
     name: str | None = None
     zones: dict[int, Zone] = {}
     position: Position
+    cluster_id: int
     # lensflares: ... not required
     # lights: ... not required
     # rendereffects
     # stardust
     # adjacentregions
+
+    @property
+    def compound_id(self) -> str:
+        return f"{self.cluster_id}-{self.id}"
+
+    @property
+    def label(self) -> str:
+        return f"Cluster_{self.cluster_id:02}_Sector{self.id:03}"
 
 
 class Cluster(BaseModel):
@@ -118,6 +128,12 @@ class Galaxy(BaseModel):
     @property
     def sector_count(self) -> int:
         return sum(x.sector_count for x in self.clusters.values())
+
+    @property
+    def sector_list(self) -> list[Sector]:
+        return [
+            sector for cluster in self.cluster_list for sector in cluster.sector_list
+        ]
 
     def get_cluster_siblings(self, target: Cluster | None = None) -> list[Cluster]:
         clusters_copy = {**self.clusters}

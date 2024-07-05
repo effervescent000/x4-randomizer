@@ -159,11 +159,15 @@ class SectorGenerator:
 
             max_sectors = random.randint(1, 3)
             if max_sectors == 1:
-                sector = Sector(id=0, position=Position(0, 0, 0))
+                sector = Sector(id=0, position=Position(0, 0, 0), cluster_id=cluster_id)
                 cluster.sectors[0] = sector
                 self.sector_count += 1
             else:
                 for i in range(1, max_sectors):
-                    sector = Sector(id=i, position=self._get_sector_position(cluster))
+                    sector = Sector(
+                        id=i,
+                        position=self._get_sector_position(cluster),
+                        cluster_id=cluster_id,
+                    )
                     cluster.sectors[i] = sector
                     self.sector_count += 1
