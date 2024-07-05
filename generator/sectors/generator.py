@@ -32,7 +32,7 @@ class SectorGenerator:
     def generate(self) -> None:
         """Generate clusters with 1-3 sectors each, until we reach the sector cap."""
         self._generate_sectors()
-        # TODO generate jump gates
+        self._generate_cluster_highways()
         self._generate_sector_highways()
 
     def _generate_cluster_highways(self) -> None:

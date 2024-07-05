@@ -35,6 +35,10 @@ class InterClusterConnector(Connector):
     def id(self) -> str:
         return f"{self.entry_cluster.id}-{self.exit_cluster.id}"
 
+    @property
+    def label(self) -> str:
+        return f"ClusterGate{self.entry_cluster.id:03}To{self.exit_cluster.id:03}"
+
 
 class InterSectorConnector(Connector):
     """Accelerators and superhighways."""

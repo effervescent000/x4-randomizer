@@ -9,14 +9,15 @@ from generator.sectors.models import Galaxy
 ASSETS_ENV_LOC = os.path.join("assets", "environments")
 MAPS_LOC = os.path.join("maps", "xu_ep2_universe")
 
-COMPONENT = "component"
-REF = "ref"
-CONNECTIONS = "connections"
-CONNECTION = "connection"
-GALAXY = "galaxy"
 CLUSTERS = "clusters"
+COMPONENT = "component"
+CONNECTION = "connection"
+CONNECTIONS = "connections"
+DESTINATION = "destination"
+GALAXY = "galaxy"
 NAME = "name"
 MACRO = "macro"
+REF = "ref"
 
 
 class ModWriter:
@@ -60,6 +61,13 @@ class ModWriter:
             offset.append(position)
 
             conn.extend([macro, offset])
+
+        for hw in self.galaxy.highways:
+            conn = Element(CONNECTION, attrib={NAME: hw.label, REF: DESTINATION})
+            connections.append(conn)
+
+            macro = Element(MACRO, attrib={CONNECTION: DESTINATION})
+            conn.append(macro)
 
         deannotate(root)
         xml = etree.tostring(root, pretty_print=True, xml_declaration=True)
