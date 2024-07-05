@@ -4,6 +4,7 @@ from config.models import Config
 from generator.sectors.helpers import (
     break_compound_id,
     check_for_connection,
+    convert_km_to_m_galaxy_scale,
     count_connections,
     distance_between_points,
     get_directional_position_from_pair_both,
@@ -31,7 +32,7 @@ class SectorGenerator:
 
     def generate(self) -> None:
         """Generate clusters with 1-3 sectors each, until we reach the sector cap."""
-        self._generate_sectors()
+        self._generate_clusters_and_sectors()
         self._generate_cluster_highways()
         self._generate_sector_highways()
 
@@ -80,14 +81,14 @@ class SectorGenerator:
         for cluster in self.galaxy.clusters.values():
             if len(cluster.sectors) > 1:
                 for sector in cluster.sectors.values():
-                    # if the target cluster has no connections, connect it to one of its siblings
+                    # if the target sector has no connections, connect it to one of its siblings
                     if not any(
                         [
                             sector.id in break_compound_id(x.id)
                             for x in cluster.inter_sector_highways
                         ]
                     ):
-                        max_gate_distance = 800_000
+                        max_gate_distance = convert_km_to_m_galaxy_scale(800)
                         partner = random.choice(cluster.get_sector_siblings(sector))
                         main_gate_pos, partner_gate_pos = (
                             get_directional_position_from_pair_both(
@@ -115,11 +116,13 @@ class SectorGenerator:
             return Position(x, y, z)
 
         siblings = self.galaxy.get_cluster_siblings()
+        overlap_distance = convert_km_to_m_galaxy_scale(500)
         while True:
             maybe_position = Position(x, y, z)
             if not any(
                 [
-                    distance_between_points(sib.position, maybe_position) < 50_000
+                    distance_between_points(sib.position, maybe_position)
+                    < overlap_distance
                     for sib in siblings
                 ]
             ):
@@ -128,7 +131,7 @@ class SectorGenerator:
             z = get_random_with_multiplier(multiplier)
 
     def _get_sector_position(self, cluster: Cluster) -> Position:
-        multiplier = 100
+        multiplier = 10_000
         y = 0
         x = get_random_with_multiplier(multiplier)
         z = get_random_with_multiplier(multiplier)
@@ -136,11 +139,13 @@ class SectorGenerator:
             return Position(x, y, z)
 
         siblings = cluster.get_sector_siblings()
+        overlap_distance = convert_km_to_m_galaxy_scale(500)
         while True:
             maybe_position = Position(x, y, z)
             if not any(
                 [
                     distance_between_points(sib.position, maybe_position)
+                    < overlap_distance
                     for sib in siblings
                 ]
             ):
@@ -148,7 +153,7 @@ class SectorGenerator:
             x = get_random_with_multiplier(multiplier)
             z = get_random_with_multiplier(multiplier)
 
-    def _generate_sectors(self) -> None:
+    def _generate_clusters_and_sectors(self) -> None:
         while self.sector_count < self.config.sector_count:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(

@@ -9,13 +9,17 @@ from generator.sectors.models import Cluster, Galaxy, Position, Sector
 from testing.shapes import sector_factory
 
 
+DEFAULT_DISTANCE = 20_000_000
+DEFAULT_DISTANCE_NEGATIVE = -20_000_000
+
+
 @pytest.mark.parametrize("_execution_number", range(5))
 def test_basic_sector_gen(_execution_number: int) -> None:
     """Can we generate a single cluster with 1-3 sectors without problems?"""
     config = Config(sector_count=1)
     galaxy = Galaxy()
     generator = SectorGenerator(config, galaxy)
-    generator._generate_sectors()
+    generator._generate_clusters_and_sectors()
     assert galaxy.cluster_count == 1
     cluster = cast(Cluster, galaxy.clusters.get(0))
     assert cluster.position.y == 0
@@ -56,12 +60,12 @@ def test_cluster_highway_gen_simple() -> None:
     clusters = {
         1: Cluster(
             id=1,
-            position=Position(-20_000_000, 0, -20_000_000),
+            position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
         2: Cluster(
             id=2,
-            position=Position(20_000_000, 0, 20_000_000),
+            position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
     }
@@ -80,22 +84,22 @@ def test_cluster_highway_gen_multiple_clusters(_execution_number: int) -> None:
     clusters = {
         1: Cluster(
             id=1,
-            position=Position(-20_000_000, 0, -20_000_000),
+            position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
         2: Cluster(
             id=2,
-            position=Position(20_000_000, 0, 20_000_000),
+            position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
         3: Cluster(
             id=3,
-            position=Position(20_000_000, 0, -20_000_000),
+            position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
         4: Cluster(
             id=4,
-            position=Position(-20_000_000, 0, 20_000_000),
+            position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
     }

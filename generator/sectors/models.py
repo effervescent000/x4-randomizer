@@ -50,7 +50,7 @@ class InterSectorConnector(Connector):
 
 class Zone(BaseModel):
     id: int
-    sector_id: int
+    sector_id: str  # this should point to the sector's compound id
     # there's a TON of stuff here but i feel like a lot of it is determined by gameplay
     # so I'm just going to include a few things
     # stations: ... not required, should probably only be used for hard-coded stations like wharfs/shipyards/trade centers

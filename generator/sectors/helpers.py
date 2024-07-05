@@ -114,3 +114,9 @@ def get_location_in_sector_from_cluster_both(
         get_location_in_sector_from_cluster_single(a, b),
         get_location_in_sector_from_cluster_single(b, a),
     )
+
+
+def convert_km_to_m_galaxy_scale(distance_km: int) -> int:
+    # this is here because things on the galactic/cluster scale are very large
+    # and need an extra level of multiplier to work. i think? maybe? we'll see
+    return distance_km * 100 * 1_000
