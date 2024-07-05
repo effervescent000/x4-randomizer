@@ -1,0 +1,6 @@
+lxml==5.2.2
+pydantic==2.7.4
+pydantic_core==2.18.4
+pytest==8.2.2
+PyYAML==6.0.1
+shapely==2.0.4

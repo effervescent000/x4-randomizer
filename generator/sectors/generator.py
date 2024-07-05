@@ -37,7 +37,7 @@ class SectorGenerator:
         self._generate_sector_highways()
 
     def _generate_cluster_highways(self) -> None:
-        for cluster in self.galaxy.clusters.values():
+        for cluster in self.galaxy.cluster_list:
             # order other clusters by distance and join a few nearby ones
             # that don't already have a connection to the one we're looking at
             siblings = sorted(
@@ -53,6 +53,7 @@ class SectorGenerator:
                         entry_point, exit_point = (
                             get_location_in_sector_from_cluster_both(cluster, sib)
                         )
+                        # entry_point, exit_point = (get_directional_position_from_pair_both(cluster, sib, 600_000))
                         highway = InterClusterConnector(
                             entry_point=entry_point,
                             exit_point=exit_point,
@@ -78,6 +79,7 @@ class SectorGenerator:
                             self.galaxy.highways.append(highway)
 
     def _generate_sector_highways(self) -> None:
+        # TODO refactor this to use galaxy.sector_list if possible
         for cluster in self.galaxy.clusters.values():
             if len(cluster.sectors) > 1:
                 for sector in cluster.sectors.values():
@@ -105,7 +107,7 @@ class SectorGenerator:
                         )
                         cluster.inter_sector_highways.append(highway)
 
-    def _get_cluster_position(self) -> Position:
+    def _make_cluster_position(self) -> Position:
         multiplier = 10_000
         y = 0
         x = get_random_with_multiplier(multiplier)
@@ -130,7 +132,7 @@ class SectorGenerator:
             x = get_random_with_multiplier(multiplier)
             z = get_random_with_multiplier(multiplier)
 
-    def _get_sector_position(self, cluster: Cluster) -> Position:
+    def _make_sector_position(self, cluster: Cluster) -> Position:
         multiplier = 10_000
         y = 0
         x = get_random_with_multiplier(multiplier)
@@ -158,7 +160,7 @@ class SectorGenerator:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(
                 id=cluster_id,
-                position=self._get_cluster_position(),
+                position=self._make_cluster_position(),
             )
             self.galaxy.clusters[cluster_id] = cluster
 
@@ -171,7 +173,7 @@ class SectorGenerator:
                 for i in range(1, max_sectors):
                     sector = Sector(
                         id=i,
-                        position=self._get_sector_position(cluster),
+                        position=self._make_sector_position(cluster),
                         cluster_id=cluster_id,
                     )
                     cluster.sectors[i] = sector
