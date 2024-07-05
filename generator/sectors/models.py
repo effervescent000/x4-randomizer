@@ -2,7 +2,7 @@ import math
 from typing import NamedTuple
 
 # from matplotlib.patches import RegularPolygon
-from shapely import Polygon
+from shapely import Polygon, intersects
 from pydantic import BaseModel, ConfigDict
 
 
@@ -10,10 +10,6 @@ class Position(NamedTuple):
     x: float
     y: float
     z: float
-
-    # @property
-    # def stringified(self) -> tuple[str, str, str]:
-    #     return (str(self.x), str(self.y), str(self.z))
 
     @property
     def string_dict(self) -> dict[str, str]:
@@ -91,6 +87,9 @@ class Hex:
         )
         points = (*points, points[0])
         return points
+
+    def intersects(self, target: "Hex") -> bool:
+        return intersects(self.shape, target.shape)
 
 
 class Sector:

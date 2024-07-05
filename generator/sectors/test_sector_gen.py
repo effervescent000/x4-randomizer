@@ -1,6 +1,5 @@
-from typing import cast
-
 import pytest
+
 
 from config.models import Config
 from generator.sectors.generator import SectorGenerator
@@ -20,13 +19,40 @@ def test_basic_sector_gen(_execution_number: int) -> None:
     galaxy = Galaxy()
     generator = SectorGenerator(config, galaxy)
     generator._generate_clusters_and_sectors()
-    # breakpoint()
     assert galaxy.cluster_count == 1
-    cluster = cast(Cluster, galaxy.clusters.get(0))
+    cluster = galaxy.cluster_list[0]
     assert cluster.position.y == 0
     assert 100_000_000 > abs(cluster.position.x) > 10_000
 
     assert 4 > galaxy.sector_count >= 1
+
+
+@pytest.mark.parametrize("_execution_number", range(5))
+def test_gen_no_overlaps(_execution_number: int) -> None:
+    """Is the overlap prevention working?"""
+    config = Config(sector_count=100)
+    galaxy = Galaxy()
+    gen = SectorGenerator(config, galaxy)
+    gen._generate_clusters_and_sectors()
+    assert galaxy.cluster_count >= 2
+    assert galaxy.sector_count >= 10
+    assert all(
+        [
+            not any([x.hex.intersects(y.hex) for y in galaxy.get_cluster_siblings(x)])
+            for x in galaxy.cluster_list
+        ]
+    ), "No clusters should overlap"
+    assert all(
+        [
+            not any(
+                [
+                    x.hex.intersects(sib.hex)
+                    for sib in galaxy.clusters[x.cluster_id].get_sector_siblings(x)
+                ]
+            )
+            for x in galaxy.sector_list
+        ]
+    ), "No sectors should overlap"
 
 
 @pytest.mark.parametrize("_execution_number", range(5))
