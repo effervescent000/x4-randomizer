@@ -1,12 +1,15 @@
+import math
 from typing import NamedTuple
 
-from pydantic import BaseModel
+# from matplotlib.patches import RegularPolygon
+from shapely import Polygon
+from pydantic import BaseModel, ConfigDict
 
 
 class Position(NamedTuple):
-    x: int
-    y: int
-    z: int
+    x: float
+    y: float
+    z: float
 
     # @property
     # def stringified(self) -> tuple[str, str, str]:
@@ -21,6 +24,8 @@ class LocationInSector(BaseModel):
     sector: "Sector"
     position: Position
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 
 class Connector(BaseModel):
     entry_point: LocationInSector
@@ -34,6 +39,8 @@ class InterClusterConnector(Connector):
     one_way: bool = False
     entry_cluster: "Cluster"
     exit_cluster: "Cluster"
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
     def id(self) -> str:
@@ -62,17 +69,53 @@ class Zone(BaseModel):
     # gates: ... not required
 
 
-class Sector(BaseModel):
-    id: int
-    name: str | None = None
-    zones: dict[int, Zone] = {}
-    position: Position
-    cluster_id: int
+class Hex:
+    def __init__(self, center: Position, radius: float = 250_000) -> None:
+        self.center = center
+        self.radius = radius
+        self.shape = Polygon(self._make_points())
+
+    def _make_points(self) -> tuple[tuple[float, float], ...]:
+        x_offset = self.radius * math.sin(math.pi / 6)
+        z_offset = self.radius * math.sin(math.pi / 3)
+        left = (self.center.x - self.radius, self.center.z)
+        right = (self.center.x + self.radius, self.center.z)
+        points = (
+            # starting at bottom left point and circling clockwise
+            (left[0] + x_offset, left[1] - z_offset),
+            left,
+            (left[0] + x_offset, left[1] + z_offset),
+            (right[0] - x_offset, right[1] + z_offset),
+            right,
+            (right[0] - x_offset, right[1] - z_offset),
+        )
+        points = (*points, points[0])
+        return points
+
+
+class Sector:
+    # zones: dict[int, Zone] = {}
+    # radius: int = 50_000
     # lensflares: ... not required
     # lights: ... not required
     # rendereffects
     # stardust
     # adjacentregions
+
+    def __init__(
+        self,
+        id: int,
+        *,
+        name: str | None = None,
+        position: Position,
+        cluster_id: int,
+        radius: float = 250_000,
+    ) -> None:
+        self.id = id
+        self.name = name
+        self.cluster_id = cluster_id
+
+        self.hex = Hex(center=position, radius=radius)
 
     @property
     def compound_id(self) -> str:
@@ -82,13 +125,14 @@ class Sector(BaseModel):
     def label(self) -> str:
         return f"Cluster_{self.cluster_id:02}_Sector{self.id:03}"
 
+    @property
+    def position(self) -> Position:
+        return self.hex.center
 
-class Cluster(BaseModel):
-    id: int
-    name: str | None = None
-    sectors: dict[int, Sector] = {}
-    position: Position
-    inter_sector_highways: list[InterSectorConnector] = []
+
+class Cluster:
+    # position: Position
+    # radius: int = 50_000
     # areas: ... not required
     # regions: ... not required
     # content: ...
@@ -97,6 +141,23 @@ class Cluster(BaseModel):
     # nebulas: ... not required
     # rendereffects: ...
     # lensflares: ...
+
+    def __init__(
+        self,
+        id: int,
+        *,
+        name: str | None = None,
+        sectors: dict[int, Sector] = {},
+        inter_sector_highways: list[InterSectorConnector] = [],
+        position: Position,
+        radius: float = 250_000,
+    ) -> None:
+        self.id = id
+        self.name = name
+        self.sectors = sectors
+        self.inter_sector_highways = inter_sector_highways
+
+        self.hex = Hex(center=position, radius=radius)
 
     @property
     def label(self) -> str:
@@ -110,6 +171,10 @@ class Cluster(BaseModel):
     def sector_list(self) -> list[Sector]:
         return list(self.sectors.values())
 
+    @property
+    def position(self) -> Position:
+        return self.hex.center
+
     def get_sector_siblings(self, target: Sector | None = None) -> list[Sector]:
         sectors_copy = {**self.sectors}
         if target is not None:
@@ -117,9 +182,18 @@ class Cluster(BaseModel):
         return list(sectors_copy.values())
 
 
-class Galaxy(BaseModel):
+class Galaxy:
     clusters: dict[int, Cluster] = {}
     highways: list[InterClusterConnector] = []
+
+    def __init__(
+        self,
+        *,
+        clusters: dict[int, Cluster] = {},
+        highways: list[InterClusterConnector] = [],
+    ) -> None:
+        self.clusters = clusters
+        self.highways = highways
 
     @property
     def cluster_count(self) -> int:

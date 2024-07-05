@@ -20,6 +20,7 @@ def test_basic_sector_gen(_execution_number: int) -> None:
     galaxy = Galaxy()
     generator = SectorGenerator(config, galaxy)
     generator._generate_clusters_and_sectors()
+    # breakpoint()
     assert galaxy.cluster_count == 1
     cluster = cast(Cluster, galaxy.clusters.get(0))
     assert cluster.position.y == 0
@@ -57,18 +58,19 @@ def test_sector_highway_gen_simple(_execution_number: int) -> None:
 def test_cluster_highway_gen_simple() -> None:
     """Generate inter-cluster highways between two clusters, with a single sector each."""
     config = Config(sector_count=1)
-    clusters = {
-        1: Cluster(
+    clusters = [
+        Cluster(
             id=1,
             position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
-        2: Cluster(
+        Cluster(
             id=2,
             position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
-    }
+    ]
+    clusters = {x.id: x for x in clusters}
     galaxy = Galaxy(clusters=clusters)
 
     gen = SectorGenerator(config, galaxy=galaxy)
@@ -81,28 +83,29 @@ def test_cluster_highway_gen_simple() -> None:
 def test_cluster_highway_gen_multiple_clusters(_execution_number: int) -> None:
     """Generate highways with a larger group of clusters."""
     config = Config(sector_count=1)
-    clusters = {
-        1: Cluster(
+    clusters = [
+        Cluster(
             id=1,
             position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
-        2: Cluster(
+        Cluster(
             id=2,
             position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
-        3: Cluster(
+        Cluster(
             id=3,
             position=Position(DEFAULT_DISTANCE, 0, DEFAULT_DISTANCE_NEGATIVE),
             sectors={1: sector_factory(id=1)},
         ),
-        4: Cluster(
+        Cluster(
             id=4,
             position=Position(DEFAULT_DISTANCE_NEGATIVE, 0, DEFAULT_DISTANCE),
             sectors={1: sector_factory(id=1)},
         ),
-    }
+    ]
+    clusters = {x.id: x for x in clusters}
     galaxy = Galaxy(clusters=clusters)
 
     gen = SectorGenerator(config, galaxy=galaxy)

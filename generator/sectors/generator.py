@@ -1,5 +1,6 @@
 import random
 
+
 from config.models import Config
 from generator.sectors.helpers import (
     break_compound_id,
@@ -14,6 +15,7 @@ from generator.sectors.helpers import (
 from generator.sectors.models import (
     Cluster,
     Galaxy,
+    Hex,
     InterClusterConnector,
     InterSectorConnector,
     LocationInSector,
@@ -27,7 +29,6 @@ BASE_CHANCE_FOR_MULTIPLE_CLUSTER_CONNECTIONS = 0.75
 class SectorGenerator:
     def __init__(self, config: Config, galaxy: Galaxy) -> None:
         self.config = config
-        self.sector_count = 0
         self.galaxy = galaxy
 
     def generate(self) -> None:
@@ -42,7 +43,7 @@ class SectorGenerator:
             # that don't already have a connection to the one we're looking at
             siblings = sorted(
                 self.galaxy.get_cluster_siblings(cluster),
-                key=lambda x: distance_between_points(x.position, cluster.position),
+                key=lambda x: distance_between_points(x.hex.center, cluster.position),
             )
 
             for sib in siblings:
@@ -53,7 +54,6 @@ class SectorGenerator:
                         entry_point, exit_point = (
                             get_location_in_sector_from_cluster_both(cluster, sib)
                         )
-                        # entry_point, exit_point = (get_directional_position_from_pair_both(cluster, sib, 600_000))
                         highway = InterClusterConnector(
                             entry_point=entry_point,
                             exit_point=exit_point,
@@ -141,22 +141,16 @@ class SectorGenerator:
             return Position(x, y, z)
 
         siblings = cluster.get_sector_siblings()
-        overlap_distance = 50_000
         while True:
             maybe_position = Position(x, y, z)
-            if not any(
-                [
-                    distance_between_points(sib.position, maybe_position)
-                    < overlap_distance
-                    for sib in siblings
-                ]
-            ):
+            poly = Hex(center=maybe_position)
+            if not any([poly.shape.overlaps(sib.hex.shape) for sib in siblings]):
                 return maybe_position
             x = get_random_with_multiplier(multiplier)
             z = get_random_with_multiplier(multiplier)
 
     def _generate_clusters_and_sectors(self) -> None:
-        while self.sector_count < self.config.sector_count:
+        while self.galaxy.sector_count < self.config.sector_count:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(
                 id=cluster_id,
@@ -168,7 +162,6 @@ class SectorGenerator:
             if max_sectors == 1:
                 sector = Sector(id=0, position=Position(0, 0, 0), cluster_id=cluster_id)
                 cluster.sectors[0] = sector
-                self.sector_count += 1
             else:
                 for i in range(1, max_sectors):
                     sector = Sector(
@@ -177,4 +170,3 @@ class SectorGenerator:
                         cluster_id=cluster_id,
                     )
                     cluster.sectors[i] = sector
-                    self.sector_count += 1
