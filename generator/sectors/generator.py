@@ -169,4 +169,5 @@ class SectorGenerator:
                         position=self._make_sector_position(cluster),
                         cluster_id=cluster_id,
                     )
+                    sector.snap_hex_to_targets(cluster.get_sector_siblings())
                     cluster.sectors[i] = sector

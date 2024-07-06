@@ -1,5 +1,8 @@
 from generator.sectors.models import Cluster, Position, Sector
 
+DEFAULT_DISTANCE = 20_000_000
+DEFAULT_DISTANCE_NEGATIVE = -20_000_000
+
 
 def sector_factory(
     id: int,

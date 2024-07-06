@@ -1,5 +1,6 @@
 import math
 import random
+
 from generator.sectors.models import Cluster, LocationInSector, Position, Sector
 
 
@@ -22,7 +23,9 @@ def break_compound_id(compound_id: str) -> tuple[int, int]:
     return (int(a), int(b))
 
 
-def get_relative_bounds(limit: int, main_pos: int, target_pos: int) -> tuple[int, int]:
+def get_relative_bounds(
+    limit: int, main_pos: float, target_pos: float
+) -> tuple[int, int]:
     if main_pos > target_pos:
         return (0, limit)
     if main_pos < target_pos:

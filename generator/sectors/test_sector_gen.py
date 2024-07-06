@@ -5,11 +5,7 @@ from config.models import Config
 from generator.sectors.generator import SectorGenerator
 from generator.sectors.helpers import break_compound_id, get_default_position
 from generator.sectors.models import Cluster, Galaxy, Position, Sector
-from testing.shapes import sector_factory
-
-
-DEFAULT_DISTANCE = 20_000_000
-DEFAULT_DISTANCE_NEGATIVE = -20_000_000
+from testing.shapes import DEFAULT_DISTANCE, DEFAULT_DISTANCE_NEGATIVE, sector_factory
 
 
 @pytest.mark.parametrize("_execution_number", range(5))

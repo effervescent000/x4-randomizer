@@ -1,9 +1,13 @@
 import math
-from typing import NamedTuple
+from typing import NamedTuple, Sequence, cast
 
-# from matplotlib.patches import RegularPolygon
-from shapely import Polygon, intersects
+
+from shapely import Polygon, get_x, get_y, intersects, coverage_union_all, snap
 from pydantic import BaseModel, ConfigDict
+
+
+def get_position_from_polygon(poly: Polygon) -> "Position":
+    return Position(get_x(poly.centroid), 0, get_y(poly.centroid))
 
 
 class Position(NamedTuple):
@@ -92,7 +96,28 @@ class Hex:
         return intersects(self.shape, target.shape)
 
 
-class Sector:
+class Tile:
+    def __init__(
+        self, id: int, *, name: str | None = None, position: Position, radius: float
+    ) -> None:
+        self.id = id
+        self.name = name
+
+        self.hex = Hex(center=position, radius=radius)
+
+    @property
+    def position(self) -> Position:
+        return self.hex.center
+
+    def snap_hex_to_targets(self, targets: Sequence["Tile"]) -> None:
+        coverage = coverage_union_all([x.hex.shape for x in targets])
+        snapped = snap(self.hex.shape, coverage, tolerance=1)
+        self.hex = Hex(
+            center=get_position_from_polygon(snapped), radius=self.hex.radius
+        )
+
+
+class Sector(Tile):
     # zones: dict[int, Zone] = {}
     # radius: int = 50_000
     # lensflares: ... not required
@@ -110,11 +135,9 @@ class Sector:
         cluster_id: int,
         radius: float = 250_000,
     ) -> None:
-        self.id = id
-        self.name = name
-        self.cluster_id = cluster_id
+        super().__init__(id, name=name, position=position, radius=radius)
 
-        self.hex = Hex(center=position, radius=radius)
+        self.cluster_id = cluster_id
 
     @property
     def compound_id(self) -> str:
@@ -124,14 +147,8 @@ class Sector:
     def label(self) -> str:
         return f"Cluster_{self.cluster_id:02}_Sector{self.id:03}"
 
-    @property
-    def position(self) -> Position:
-        return self.hex.center
 
-
-class Cluster:
-    # position: Position
-    # radius: int = 50_000
+class Cluster(Tile):
     # areas: ... not required
     # regions: ... not required
     # content: ...
@@ -151,12 +168,10 @@ class Cluster:
         position: Position,
         radius: float = 250_000,
     ) -> None:
-        self.id = id
-        self.name = name
+        super().__init__(id, name=name, position=position, radius=radius)
+
         self.sectors = sectors
         self.inter_sector_highways = inter_sector_highways
-
-        self.hex = Hex(center=position, radius=radius)
 
     @property
     def label(self) -> str:
@@ -170,15 +185,15 @@ class Cluster:
     def sector_list(self) -> list[Sector]:
         return list(self.sectors.values())
 
-    @property
-    def position(self) -> Position:
-        return self.hex.center
-
     def get_sector_siblings(self, target: Sector | None = None) -> list[Sector]:
         sectors_copy = {**self.sectors}
         if target is not None:
-            sectors_copy.pop(target.id)
+            sectors_copy.pop(target.id)  # type: ignore
         return list(sectors_copy.values())
+
+    def wrap_sectors(self) -> Polygon:
+        geometries = [x.hex.shape for x in self.sector_list]
+        return cast(Polygon, coverage_union_all(geometries))
 
 
 class Galaxy:
