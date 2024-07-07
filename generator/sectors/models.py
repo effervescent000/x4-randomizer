@@ -3,12 +3,7 @@ from statistics import mean
 from typing import NamedTuple, cast
 
 
-from shapely import Polygon, get_x, get_y
 from pydantic import BaseModel, ConfigDict
-
-
-def get_position_from_polygon(poly: Polygon) -> "Position":
-    return Position(get_x(poly.centroid), 0, get_y(poly.centroid))
 
 
 def a(n: float) -> "Position":
