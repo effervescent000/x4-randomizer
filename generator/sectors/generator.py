@@ -1,4 +1,5 @@
 import random
+from typing import cast
 
 
 from config.models import Config
@@ -10,7 +11,6 @@ from generator.sectors.helpers import (
     distance_between_points,
     get_directional_position_from_pair_both,
     get_location_in_sector_from_cluster_both,
-    get_random_with_multiplier,
 )
 from generator.sectors.models import (
     Cluster,
@@ -25,6 +25,11 @@ from generator.sectors.models import (
 
 BASE_CHANCE_FOR_MULTIPLE_CLUSTER_CONNECTIONS = 0.75
 STANDARD_RADIUS = 250_000
+
+
+class SectorGenerationException(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 
 class SectorGenerator:
@@ -58,7 +63,9 @@ class SectorGenerator:
             # that don't already have a connection to the one we're looking at
             siblings = sorted(
                 self.galaxy.get_cluster_siblings(cluster),
-                key=lambda x: distance_between_points(x.hex.center, cluster.position),
+                key=lambda x: distance_between_points(
+                    x.position, cast(Position, cluster.position)
+                ),
             )
 
             for sib in siblings:
@@ -122,67 +129,38 @@ class SectorGenerator:
                         )
                         cluster.inter_sector_highways.append(highway)
 
-    def _make_cluster_position(self) -> Position:
-        multiplier = 10_000
-        y = 0
-        x = get_random_with_multiplier(multiplier)
-        z = get_random_with_multiplier(multiplier)
-        # if cluster count is 0 it means this is the first one (which hasn't been added to the galaxy yet),
-        # so we dont have to worry about overlaps
-        if self.galaxy.cluster_count == 0:
-            return Position(x, y, z)
-
-        siblings = self.galaxy.get_cluster_siblings()
-        overlap_distance = 50_000
-        while True:
-            maybe_position = Position(x, y, z)
-            if not any(
-                [
-                    distance_between_points(sib.position, maybe_position)
-                    < overlap_distance
-                    for sib in siblings
-                ]
-            ):
-                return maybe_position
-            x = get_random_with_multiplier(multiplier)
-            z = get_random_with_multiplier(multiplier)
-
-    def _make_sector_position(self, cluster: Cluster) -> Position:
-        multiplier = 10_000
-        y = 0
-        x = get_random_with_multiplier(multiplier)
-        z = get_random_with_multiplier(multiplier)
+    def _get_position_for_sector(self, cluster: Cluster) -> Position:
         if cluster.sector_count == 0:
-            return Position(x, y, z)
+            while True:
+                hex = random.choice(list(self.hex_grid))
+                if hex.center not in [
+                    sec.hex.center for sec in self.galaxy.sector_list
+                ]:
+                    return hex.center
+        potential_positions: set[Position] = set(
+            [hex for sec in cluster.sector_list for hex in sec.hex.neighbor_positions]
+        )
+        while len(list(potential_positions)) > 0:
+            pos = random.choice(list(potential_positions))
+            if pos not in [sec.hex.center for sec in self.galaxy.sector_list]:
+                return pos
+            potential_positions.remove(pos)
 
-        siblings = cluster.get_sector_siblings()
-        while True:
-            maybe_position = Position(x, y, z)
-            poly = Hex(center=maybe_position)
-            if not any([poly.shape.overlaps(sib.hex.shape) for sib in siblings]):
-                return maybe_position
-            x = get_random_with_multiplier(multiplier)
-            z = get_random_with_multiplier(multiplier)
+        raise SectorGenerationException("No valid hex found for sector")
 
     def _generate_clusters_and_sectors(self) -> None:
         while self.galaxy.sector_count < self.config.sector_count:
             cluster_id = self.galaxy.cluster_count
             cluster = Cluster(
                 id=cluster_id,
-                position=self._make_cluster_position(),
             )
             self.galaxy.clusters[cluster_id] = cluster
 
             max_sectors = random.randint(1, 3)
-            if max_sectors == 1:
-                sector = Sector(id=0, position=Position(0, 0, 0), cluster_id=cluster_id)
-                cluster.sectors[0] = sector
-            else:
-                for i in range(1, max_sectors):
-                    sector = Sector(
-                        id=i,
-                        position=self._make_sector_position(cluster),
-                        cluster_id=cluster_id,
-                    )
-                    sector.snap_hex_to_targets(cluster.get_sector_siblings())
-                    cluster.sectors[i] = sector
+            for i in range(0, max_sectors):
+                sector = Sector(
+                    id=i,
+                    position=self._get_position_for_sector(cluster),
+                    cluster_id=cluster_id,
+                )
+                cluster.sectors[i] = sector

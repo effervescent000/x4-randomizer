@@ -1,8 +1,9 @@
 import math
-from typing import NamedTuple, Sequence, cast
+from statistics import mean
+from typing import NamedTuple, cast
 
 
-from shapely import Polygon, get_x, get_y, intersects, coverage_union_all, snap
+from shapely import Polygon, get_x, get_y
 from pydantic import BaseModel, ConfigDict
 
 
@@ -46,6 +47,16 @@ class Position(NamedTuple):
 
     def __rmul__(self, other: "Position") -> "Position":
         return self.__mul__(other)
+
+    @classmethod
+    def average(cls, positions: list["Position"]) -> "Position | None":
+        if len(positions) == 0:
+            return None
+        return cls(
+            mean([pos.x for pos in positions]),
+            mean([pos.y for pos in positions]),
+            mean([pos.z for pos in positions]),
+        )
 
 
 class LocationInSector(BaseModel):
@@ -101,27 +112,6 @@ class Hex:
     def __init__(self, center: Position, radius: float = 250_000) -> None:
         self.center = center
         self.radius = radius
-        self.shape = Polygon(self._make_points())
-
-    def _make_points(self) -> tuple[tuple[float, float], ...]:
-        x_offset = self.radius * math.sin(math.pi / 6)
-        z_offset = self.radius * math.sin(math.pi / 3)
-        left = (self.center.x - self.radius, self.center.z)
-        right = (self.center.x + self.radius, self.center.z)
-        points = (
-            # starting at bottom left point and circling clockwise
-            (left[0] + x_offset, left[1] - z_offset),
-            left,
-            (left[0] + x_offset, left[1] + z_offset),
-            (right[0] - x_offset, right[1] + z_offset),
-            right,
-            (right[0] - x_offset, right[1] - z_offset),
-        )
-        points = (*points, points[0])
-        return points
-
-    def intersects(self, target: "Hex") -> bool:
-        return intersects(self.shape, target.shape)
 
     def __hash__(self) -> int:
         return hash(f"({self.center.x}, {self.center.z})")
@@ -144,28 +134,7 @@ class Hex:
         return f"({self.center.x}, {self.center.z})"
 
 
-class Tile:
-    def __init__(
-        self, id: int, *, name: str | None = None, position: Position, radius: float
-    ) -> None:
-        self.id = id
-        self.name = name
-
-        self.hex = Hex(center=position, radius=radius)
-
-    @property
-    def position(self) -> Position:
-        return self.hex.center
-
-    def snap_hex_to_targets(self, targets: Sequence["Tile"]) -> None:
-        coverage = coverage_union_all([x.hex.shape for x in targets])
-        snapped = snap(self.hex.shape, coverage, tolerance=1)
-        self.hex = Hex(
-            center=get_position_from_polygon(snapped), radius=self.hex.radius
-        )
-
-
-class Sector(Tile):
+class Sector:
     # zones: dict[int, Zone] = {}
     # radius: int = 50_000
     # lensflares: ... not required
@@ -183,9 +152,16 @@ class Sector(Tile):
         cluster_id: int,
         radius: float = 250_000,
     ) -> None:
-        super().__init__(id, name=name, position=position, radius=radius)
+        self.id = id
+        self.name = name
+
+        self.hex = Hex(center=position, radius=radius)
 
         self.cluster_id = cluster_id
+
+    @property
+    def position(self) -> Position:
+        return self.hex.center
 
     @property
     def compound_id(self) -> str:
@@ -196,7 +172,7 @@ class Sector(Tile):
         return f"Cluster_{self.cluster_id:02}_Sector{self.id:03}"
 
 
-class Cluster(Tile):
+class Cluster:
     # areas: ... not required
     # regions: ... not required
     # content: ...
@@ -213,13 +189,26 @@ class Cluster(Tile):
         name: str | None = None,
         sectors: dict[int, Sector] = {},
         inter_sector_highways: list[InterSectorConnector] = [],
-        position: Position,
-        radius: float = 250_000,
+        # position: Position,
+        # radius: float = 250_000,
     ) -> None:
-        super().__init__(id, name=name, position=position, radius=radius)
+        self.id = id
+        self.name = name
 
         self.sectors = sectors
         self.inter_sector_highways = inter_sector_highways
+
+    @property
+    def position_unsafe(self) -> Position | None:
+        if self.sector_count == 0:
+            return None
+        return Position.average([sector.position for sector in self.sector_list])
+
+    @property
+    def position(self) -> Position:
+        return cast(
+            Position, Position.average([sector.position for sector in self.sector_list])
+        )
 
     @property
     def label(self) -> str:
@@ -238,10 +227,6 @@ class Cluster(Tile):
         if target is not None:
             sectors_copy.pop(target.id)  # type: ignore
         return list(sectors_copy.values())
-
-    def wrap_sectors(self) -> Polygon:
-        geometries = [x.hex.shape for x in self.sector_list]
-        return cast(Polygon, coverage_union_all(geometries))
 
 
 class Galaxy:
