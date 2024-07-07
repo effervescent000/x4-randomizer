@@ -5,7 +5,39 @@ from config.models import Config
 from generator.sectors.generator import SectorGenerator
 from generator.sectors.helpers import break_compound_id, get_default_position
 from generator.sectors.models import Cluster, Galaxy, Position, Sector
-from testing.shapes import DEFAULT_DISTANCE, DEFAULT_DISTANCE_NEGATIVE, sector_factory
+from testing.shapes import (
+    DEFAULT_DISTANCE,
+    DEFAULT_DISTANCE_NEGATIVE,
+    hex_factory,
+    sector_factory,
+)
+
+
+def test_hex_generation() -> None:
+    config = Config(sector_count=75)
+    galaxy = Galaxy()
+    gen = SectorGenerator(config, galaxy)
+    gen._generate_hex_grid()
+
+    radius = 250_000
+
+    assert len(gen.hex_grid) >= 200, "Hex grid should be populated"
+    assert all(
+        [
+            any(
+                [
+                    hex_factory(
+                        hex.center.x + 0,
+                        hex.center.z + radius,
+                    )
+                    in gen.hex_grid,
+                    hex_factory(hex.center.x + 0, hex.center.z - radius)
+                    in gen.hex_grid,
+                ]
+            )
+            for hex in gen.hex_grid
+        ]
+    ), "Every hex has at least one adjacent neighbor"
 
 
 @pytest.mark.parametrize("_execution_number", range(5))

@@ -10,6 +10,14 @@ def get_position_from_polygon(poly: Polygon) -> "Position":
     return Position(get_x(poly.centroid), 0, get_y(poly.centroid))
 
 
+def a(n: float) -> "Position":
+    return Position(math.sqrt(3) / 2 * n, 0, 0.5 * n)
+
+
+def b(n: float) -> "Position":
+    return Position(math.sqrt(3) / 2 * n, 0, -0.5 * n)
+
+
 class Position(NamedTuple):
     x: float
     y: float
@@ -18,6 +26,26 @@ class Position(NamedTuple):
     @property
     def string_dict(self) -> dict[str, str]:
         return {"x": str(self.x), "y": str(self.y), "z": str(self.z)}
+
+    def __add__(self, other: "Position") -> "Position":
+        return Position(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def __radd__(self, other: "Position") -> "Position":
+        return self.__add__(other)
+
+    def __sub__(self, other: "Position") -> "Position":
+        return Position(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def __rsub__(self, other: "Position") -> "Position":
+        return Position(other.x - self.x, other.y - self.y, other.z - self.z)
+
+    def __mul__(self, other: "Position | float") -> "Position":
+        if isinstance(other, Position):
+            return Position(self.x * other.x, self.y * other.y, self.z * other.z)
+        return Position(self.x * other, self.y * other, self.z * other)
+
+    def __rmul__(self, other: "Position") -> "Position":
+        return self.__mul__(other)
 
 
 class LocationInSector(BaseModel):
@@ -94,6 +122,26 @@ class Hex:
 
     def intersects(self, target: "Hex") -> bool:
         return intersects(self.shape, target.shape)
+
+    def __hash__(self) -> int:
+        return hash(f"({self.center.x}, {self.center.z})")
+
+    def __eq__(self, value: object) -> bool:
+        return self.center == value
+
+    @property
+    def neighbor_positions(self) -> list[Position]:
+        return [
+            self.center + a(self.radius),
+            self.center + b(self.radius),
+            self.center + a(self.radius) - b(self.radius),
+            self.center + b(self.radius) - a(self.radius),
+            self.center + b(self.radius) * -1,
+            self.center + a(self.radius) * -1,
+        ]
+
+    def __repr__(self) -> str:
+        return f"({self.center.x}, {self.center.z})"
 
 
 class Tile:

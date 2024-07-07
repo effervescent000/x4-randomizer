@@ -1,4 +1,4 @@
-from generator.sectors.models import Cluster, Position, Sector
+from generator.sectors.models import Cluster, Hex, Position, Sector
 
 DEFAULT_DISTANCE = 20_000_000
 DEFAULT_DISTANCE_NEGATIVE = -20_000_000
@@ -27,3 +27,7 @@ def cluster_factory(
     return Cluster(
         id=id, name=name, position=position or Position(0, 0, 0), sectors=sectors or {}
     )
+
+
+def hex_factory(x: float, z: float) -> Hex:
+    return Hex(center=Position(x, 0, z))

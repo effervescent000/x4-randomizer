@@ -24,18 +24,33 @@ from generator.sectors.models import (
 )
 
 BASE_CHANCE_FOR_MULTIPLE_CLUSTER_CONNECTIONS = 0.75
+STANDARD_RADIUS = 250_000
 
 
 class SectorGenerator:
     def __init__(self, config: Config, galaxy: Galaxy) -> None:
         self.config = config
         self.galaxy = galaxy
+        self.hex_grid: set[Hex] = set()
 
     def generate(self) -> None:
         """Generate clusters with 1-3 sectors each, until we reach the sector cap."""
+        self._generate_hex_grid()
         self._generate_clusters_and_sectors()
         self._generate_cluster_highways()
         self._generate_sector_highways()
+
+    def _generate_hex_grid(self) -> None:
+        new_hexes: set[Hex] = {Hex(center=Position(0, 0, 0))}
+        # TODO make this number based on the number of sectors in the config
+        while len(self.hex_grid) < 200:
+            hexes_to_add: set[Hex] = set()
+            for hex in new_hexes:
+                # for every recently added hex, populate its neighbors.
+                # we don't have to worry about dupes since we're using sets
+                hexes_to_add.update([Hex(center=x) for x in hex.neighbor_positions])
+            self.hex_grid.update(hexes_to_add)
+            new_hexes = {*hexes_to_add}
 
     def _generate_cluster_highways(self) -> None:
         for cluster in self.galaxy.cluster_list:
