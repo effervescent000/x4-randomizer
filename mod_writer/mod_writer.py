@@ -55,11 +55,7 @@ class ModWriter:
             offset = Element("offset")
             position = Element(
                 "position",
-                attrib={
-                    "x": str(cluster.position.x),
-                    "y": "0",
-                    "z": str(cluster.position.z),
-                },
+                attrib={**cluster.position.string_dict},
             )
             offset.append(position)
 

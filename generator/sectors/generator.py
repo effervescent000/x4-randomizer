@@ -130,19 +130,22 @@ class SectorGenerator:
                         cluster.inter_sector_highways.append(highway)
 
     def _get_position_for_sector(self, cluster: Cluster) -> Position:
+        # breakpoint()
         if cluster.sector_count == 0:
             while True:
+                # breakpoint()
                 hex = random.choice(list(self.hex_grid))
                 if hex.center not in [
                     sec.hex.center for sec in self.galaxy.sector_list
                 ]:
                     return hex.center
         potential_positions: set[Position] = set(
-            [hex for sec in cluster.sector_list for hex in sec.hex.neighbor_positions]
+            [pos for sec in cluster.sector_list for pos in sec.hex.neighbor_positions]
         )
         while len(list(potential_positions)) > 0:
             pos = random.choice(list(potential_positions))
             if pos not in [sec.hex.center for sec in self.galaxy.sector_list]:
+                # breakpoint()
                 return pos
             potential_positions.remove(pos)
 

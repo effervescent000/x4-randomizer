@@ -26,7 +26,11 @@ class Position(NamedTuple):
 
     @property
     def string_dict(self) -> dict[str, str]:
-        return {"x": str(self.x), "y": str(self.y), "z": str(self.z)}
+        return {
+            "x": str(round(self.x)),
+            "y": str(round(self.y)),
+            "z": str(round(self.z)),
+        }
 
     def __add__(self, other: "Position") -> "Position":
         return Position(self.x + other.x, self.y + other.y, self.z + other.z)
@@ -57,6 +61,10 @@ class Position(NamedTuple):
             mean([pos.y for pos in positions]),
             mean([pos.z for pos in positions]),
         )
+
+    @classmethod
+    def round(cls, pos: "Position") -> "Position":
+        return cls(round(pos.x), round(pos.y), round(pos.z))
 
 
 class LocationInSector(BaseModel):
@@ -187,16 +195,16 @@ class Cluster:
         id: int,
         *,
         name: str | None = None,
-        sectors: dict[int, Sector] = {},
-        inter_sector_highways: list[InterSectorConnector] = [],
+        sectors: dict[int, Sector] | None = None,
+        inter_sector_highways: list[InterSectorConnector] | None = None,
         # position: Position,
         # radius: float = 250_000,
     ) -> None:
         self.id = id
         self.name = name
 
-        self.sectors = sectors
-        self.inter_sector_highways = inter_sector_highways
+        self.sectors = sectors or {}
+        self.inter_sector_highways = inter_sector_highways or []
 
     @property
     def position_unsafe(self) -> Position | None:
@@ -265,3 +273,6 @@ class Galaxy:
         if target is not None:
             clusters_copy.pop(target.id)
         return list(clusters_copy.values())
+
+    def get_sector_siblings(self, target: Sector) -> list[Sector]:
+        return [sec for sec in self.sector_list if sec.id != target.id]
